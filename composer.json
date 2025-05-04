@@ -1,21 +1,38 @@
 {
-    "name": "HamzaEjaz/laravel-searchable-scope",
+    "name": "hamzaejaz/laravel-searchable-scope",
     "description": "A Laravel trait to add dynamic search to models",
     "type": "library",
     "license": "MIT",
     "autoload": {
       "psr-4": {
-        "YourName\\SearchableScope\\": "src/"
+        "HamzaEjaz\\SearchableScope\\": "src/"
+      }
+    },
+    "autoload-dev": {
+      "psr-4": {
+        "HamzaEjaz\\SearchableScope\\Tests\\": "tests/"
       }
     },
     "require": {
       "php": "^8.0",
       "illuminate/database": "^9.0|^10.0|^11.0"
     },
+    "require-dev": {
+      "orchestra/testbench": "^7.0",
+      "phpunit/phpunit": "^9.0",
+      "squizlabs/php_codesniffer": "^3.0"
+    },
     "extra": {
       "laravel": {
-        "providers": []
+        "providers": [
+          "HamzaEjaz\\SearchableScope\\SearchableScopeServiceProvider"
+        ]
       }
+    },
+    "scripts": {
+      "test": "phpunit",
+      "check-style": "phpcs",
+      "fix-style": "phpcbf"
     },
     "minimum-stability": "stable"
   }
