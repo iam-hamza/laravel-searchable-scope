@@ -9,6 +9,9 @@ class SearchableScopeServiceProvider extends ServiceProvider
     public function register()
     {
         // Register any package services
+        $this->mergeConfigFrom(
+            __DIR__.'/../config/searchable-scope.php', 'searchable-scope'
+        );
     }
 
     public function boot()
