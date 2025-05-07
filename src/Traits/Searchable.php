@@ -26,10 +26,22 @@ trait Searchable
         $operator = Config::get('searchable-scope.default_operator', 'LIKE');
         $caseSensitive = Config::get('searchable-scope.case_sensitive', false);
         
-        // Use model's searchable property if no columns provided
-        if (empty($columns) && property_exists($this, 'searchable')) {
-            $columns = $this->searchable['columns'] ?? Config::get('searchable-scope.default_columns', []);
-            $relations = $this->searchable['relations'] ?? [];
+        /**
+         * Priority order:
+         * 1. Directly passed columns from controller
+         * 2. Model's searchable property
+         * 3. Config default columns
+         */
+        if (empty($columns)) {
+            if (property_exists($this, 'searchable')) {
+                $columns = $this->searchable['columns'] ?? [];
+                $relations = $this->searchable['relations'] ?? [];
+            }
+            
+            // If still empty, use config defaults
+            if (empty($columns)) {
+                $columns = Config::get('searchable-scope.default_columns', []);
+            }
         }
 
         $query->where(function ($query) use ($columns, $relations, $searchTerm, $operator, $caseSensitive) {
