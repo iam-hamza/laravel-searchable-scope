@@ -4,7 +4,6 @@ namespace HamzaEjaz\SearchableScope\Traits;
 
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Config;
-use Illuminate\Support\Facades\DB;
 
 trait Searchable
 {
@@ -25,53 +24,55 @@ trait Searchable
 
         $operator = Config::get('searchable-scope.default_operator', 'LIKE');
         $caseSensitive = Config::get('searchable-scope.case_sensitive', false);
-        
-        /**
-         * Priority order:
-         * 1. Directly passed columns from controller
-         * 2. Model's searchable property
-         * 3. Config default columns
-         */
+
+        // Resolve columns and relations
         if (empty($columns)) {
             if (property_exists($this, 'searchable')) {
                 $columns = $this->searchable['columns'] ?? [];
                 $relations = $this->searchable['relations'] ?? [];
             }
-            
-            // If still empty, use config defaults
+
             if (empty($columns)) {
                 $columns = Config::get('searchable-scope.default_columns', []);
             }
         }
 
+        // Apply search on main model and related models
         $query->where(function ($query) use ($columns, $relations, $searchTerm, $operator, $caseSensitive) {
-            foreach ($columns as $column) {
-                $value = $caseSensitive ? $searchTerm : strtolower($searchTerm);
-                if (!$caseSensitive) {
-                    $query->orWhereRaw('LOWER(' . $column . ') ' . $operator . ' ?', 
-                        [$operator === 'LIKE' ? "%{$value}%" : $value]);
-                } else {
-                    $query->orWhere($column, $operator, $operator === 'LIKE' ? "%{$value}%" : $value);
-                }
-            }
+            $this->applySearchConditions($query, $columns, $searchTerm, $operator, $caseSensitive);
 
             foreach ($relations as $relation => $relationColumns) {
                 $query->orWhereHas($relation, function ($query) use ($relationColumns, $searchTerm, $operator, $caseSensitive) {
-                    $query->where(function ($query) use ($relationColumns, $searchTerm, $operator, $caseSensitive) {
-                        foreach ($relationColumns as $column) {
-                            $value = $caseSensitive ? $searchTerm : strtolower($searchTerm);
-                            if (!$caseSensitive) {
-                                $query->orWhereRaw('LOWER(' . $column . ') ' . $operator . ' ?',
-                                    [$operator === 'LIKE' ? "%{$value}%" : $value]);
-                            } else {
-                                $query->orWhere($column, $operator, $operator === 'LIKE' ? "%{$value}%" : $value);
-                            }
-                        }
-                    });
+                    $this->applySearchConditions($query, $relationColumns, $searchTerm, $operator, $caseSensitive);
                 });
             }
         });
 
         return $query;
+    }
+
+    /**
+     * Apply search conditions to a query for a given set of columns
+     *
+     * @param Builder $query
+     * @param array $columns
+     * @param string $searchTerm
+     * @param string $operator
+     * @param bool $caseSensitive
+     */
+    protected function applySearchConditions(Builder $query, array $columns, string $searchTerm, string $operator, bool $caseSensitive): void
+    {
+        $query->where(function ($q) use ($columns, $searchTerm, $operator, $caseSensitive) {
+            foreach ($columns as $column) {
+                $value = $caseSensitive ? $searchTerm : strtolower($searchTerm);
+                if (!$caseSensitive) {
+                    $q->orWhereRaw('LOWER(' . $column . ') ' . $operator . ' ?', [
+                        $operator === 'LIKE' ? "%{$value}%" : $value
+                    ]);
+                } else {
+                    $q->orWhere($column, $operator, $operator === 'LIKE' ? "%{$value}%" : $value);
+                }
+            }
+        });
     }
 }
